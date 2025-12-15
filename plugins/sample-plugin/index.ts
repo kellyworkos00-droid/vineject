@@ -1,4 +1,4 @@
-import { BasePlugin, PluginMetadata } from '../../core/plugins/Plugin';
+import { BasePlugin, PluginMetadata } from '../../src/core/plugins/Plugin';
 import { Application, Router } from 'express';
 
 export default class SamplePlugin extends BasePlugin {
