@@ -35,6 +35,7 @@ export class AnalyticsService {
     const params: any[] = [days];
     if (channelFilter) params.push(channel);
 
+    type OrdersRow = { bucket: Date; orders: number; revenue: number };
     const ordersTimeseries = await this.db.query(
       `SELECT date_trunc('day', created_at) AS bucket,
               COUNT(*) AS orders,
@@ -46,6 +47,7 @@ export class AnalyticsService {
       [days]
     );
 
+    type PaymentsRow = { bucket: Date; revenue: number };
     const paymentsTimeseries = await this.db.query(
       `SELECT date_trunc('day', created_at) AS bucket,
               COALESCE(SUM(amount), 0) AS revenue
@@ -58,6 +60,7 @@ export class AnalyticsService {
       params
     );
 
+    type TopProductRow = { name: string; revenue: number };
     const topProducts = await this.db.query(
       `SELECT p.name, COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue
        FROM order_items oi
@@ -70,21 +73,21 @@ export class AnalyticsService {
       [days]
     );
 
-    const totalOrders = ordersTimeseries.rows.reduce((acc, row) => acc + parseInt(row.orders, 10), 0);
-    const totalRevenue = paymentsTimeseries.rows.reduce((acc, row) => acc + parseFloat(row.revenue), 0);
+    const totalOrders = ordersTimeseries.rows.reduce((acc: number, row: OrdersRow) => acc + parseInt(String(row.orders), 10), 0);
+    const totalRevenue = paymentsTimeseries.rows.reduce((acc: number, row: PaymentsRow) => acc + parseFloat(String(row.revenue)), 0);
     const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
 
     return {
-      timeseries: ordersTimeseries.rows.map((row) => ({
-        date: (row.bucket as Date).toISOString().slice(0, 10),
-        orders: parseInt(row.orders, 10),
-        revenue: parseFloat(row.revenue),
+      timeseries: ordersTimeseries.rows.map((row: OrdersRow) => ({
+        date: row.bucket.toISOString().slice(0, 10),
+        orders: parseInt(String(row.orders), 10),
+        revenue: parseFloat(String(row.revenue)),
       })),
-      paymentTimeseries: paymentsTimeseries.rows.map((row) => ({
-        date: (row.bucket as Date).toISOString().slice(0, 10),
-        revenue: parseFloat(row.revenue),
+      paymentTimeseries: paymentsTimeseries.rows.map((row: PaymentsRow) => ({
+        date: row.bucket.toISOString().slice(0, 10),
+        revenue: parseFloat(String(row.revenue)),
       })),
-      topProducts: topProducts.rows.map((row) => ({ name: row.name, revenue: parseFloat(row.revenue) })),
+      topProducts: topProducts.rows.map((row: TopProductRow) => ({ name: row.name, revenue: parseFloat(String(row.revenue)) })),
       totals: {
         orders: totalOrders,
         revenue: totalRevenue,
@@ -106,6 +109,7 @@ export class AnalyticsService {
       )
     ]);
 
+    type MovementRow = { bucket: Date; net: number };
     const recentMovements = await this.db.query(
       `SELECT date_trunc('day', created_at) AS bucket,
               SUM(CASE WHEN operation = 'add' THEN quantity ELSE -quantity END) AS net
@@ -120,19 +124,20 @@ export class AnalyticsService {
       lowStockCount: parseInt(lowStock.rows[0].count, 10) || 0,
       totalStock: parseInt(stockStats.rows[0].total_stock, 10) || 0,
       stockValue: parseFloat(stockStats.rows[0].stock_value) || 0,
-      categoryBreakdown: categoryBreakdown.rows.map((row) => ({
+      categoryBreakdown: categoryBreakdown.rows.map((row: { category: string; quantity: number }) => ({
         category: row.category,
-        quantity: parseInt(row.quantity, 10),
+        quantity: parseInt(String(row.quantity), 10),
       })),
-      movements: recentMovements.rows.map((row) => ({
-        date: (row.bucket as Date).toISOString().slice(0, 10),
-        net: parseInt(row.net, 10),
+      movements: recentMovements.rows.map((row: MovementRow) => ({
+        date: row.bucket.toISOString().slice(0, 10),
+        net: parseInt(String(row.net), 10),
       })),
     };
   }
 
   async getCustomerAnalytics(range?: string) {
     const days = this.parseRange(range);
+    type NewCustomerRow = { bucket: Date; count: number };
     const newCustomers = await this.db.query(
       `SELECT date_trunc('day', created_at) AS bucket,
               COUNT(*) AS count
@@ -143,6 +148,7 @@ export class AnalyticsService {
       [days]
     );
 
+    type TopCustomerRow = { name: string; lifetime_value: number; orders: number };
     const topCustomers = await this.db.query(
       `SELECT c.name, COALESCE(SUM(o.total), 0) AS lifetime_value, COUNT(o.id) AS orders
        FROM customers c
@@ -154,14 +160,14 @@ export class AnalyticsService {
     );
 
     return {
-      newCustomers: newCustomers.rows.map((row) => ({
-        date: (row.bucket as Date).toISOString().slice(0, 10),
-        count: parseInt(row.count, 10),
+      newCustomers: newCustomers.rows.map((row: NewCustomerRow) => ({
+        date: row.bucket.toISOString().slice(0, 10),
+        count: parseInt(String(row.count), 10),
       })),
-      topCustomers: topCustomers.rows.map((row) => ({
+      topCustomers: topCustomers.rows.map((row: TopCustomerRow) => ({
         name: row.name,
-        lifetimeValue: parseFloat(row.lifetime_value),
-        orders: parseInt(row.orders, 10),
+        lifetimeValue: parseFloat(String(row.lifetime_value)),
+        orders: parseInt(String(row.orders), 10),
       })),
     };
   }
@@ -172,6 +178,7 @@ export class AnalyticsService {
     const params: any[] = [days];
     if (channelFilter) params.push(channel);
 
+    type GatewayRow = { gateway: string; revenue: number };
     const byGateway = await this.db.query(
       `SELECT gateway, COALESCE(SUM(amount), 0) AS revenue
        FROM payments
@@ -183,6 +190,7 @@ export class AnalyticsService {
       params
     );
 
+    type RevenueRow = { bucket: Date; revenue: number };
     const timeseries = await this.db.query(
       `SELECT date_trunc('day', created_at) AS bucket,
               COALESCE(SUM(amount), 0) AS revenue
@@ -195,16 +203,16 @@ export class AnalyticsService {
       params
     );
 
-    const totalRevenue = byGateway.rows.reduce((acc, row) => acc + parseFloat(row.revenue), 0);
+    const totalRevenue = byGateway.rows.reduce((acc: number, row: GatewayRow) => acc + parseFloat(String(row.revenue)), 0);
 
     return {
-      byGateway: byGateway.rows.map((row) => ({
+      byGateway: byGateway.rows.map((row: GatewayRow) => ({
         gateway: row.gateway,
-        revenue: parseFloat(row.revenue),
+        revenue: parseFloat(String(row.revenue)),
       })),
-      timeseries: timeseries.rows.map((row) => ({
-        date: (row.bucket as Date).toISOString().slice(0, 10),
-        revenue: parseFloat(row.revenue),
+      timeseries: timeseries.rows.map((row: RevenueRow) => ({
+        date: row.bucket.toISOString().slice(0, 10),
+        revenue: parseFloat(String(row.revenue)),
       })),
       totalRevenue,
     };

@@ -22,3 +22,7 @@ coverage
 frontend/dist
 frontend/node_modules
 plugins/*/node_modules
+supabase.exe
+supabase_*.txt
+supabase_windows_*.tar.gz
+supabase_*.tar.gz

@@ -15,7 +15,7 @@ function formatCurrency(value: number) {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useQuery<DashboardStats>({
+  const { data: stats } = useQuery<DashboardStats>({
     queryKey: ['dashboardStats'],
     queryFn: async () => {
       const response = await api.get('/analytics/dashboard');

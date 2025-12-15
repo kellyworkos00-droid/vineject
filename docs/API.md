@@ -141,6 +141,8 @@ Authorization: Bearer <token>
 
 ### Payments
 
+Payments are gateway-agnostic. Stripe, PayPal, and Square are first-class, and additional gateways can be added by plugging in new service methods and routes without changing core flows.
+
 #### Create Stripe Payment Intent
 ```http
 POST /api/payments/stripe/create-payment-intent
